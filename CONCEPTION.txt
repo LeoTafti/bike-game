@@ -1,0 +1,100 @@
+MODIFICATIONS DE /AJOUT A L’ARCHITECTURE EXISTANTE
+
+ActorGame:
+Peu de grandes modifications ici.
+Ajout d’un getter getRevoluteConstraintBuilder() utilisé par Seesaw (extension bascule)
+Méthode destroyAllActors() appelant la méthode destroy() sur chacun des acteurs de sa liste d’acteurs, permettant de “faire place nette” avant le reset d’un niveau/passage au niveau suivant
+
+NOTE importante: lorsque la méthode update() d’ActorGame appelle update() sur chacun de ses acteurs, elle le faisait à l’origine en utilisant une boucle foreach, mais cela posait le problème de parfois causer une ConcurrentModificationException lors du Runtime, notamment lorsqu’un acteur tentait de se supprimer de la liste d’acteur (ie. lorsque destroy() de l’acteur en question était appelé, par exemple lorsque le Bike entre en collision avec le sol). La solution la plus simple, mais imparfaite, trouvée a été de remplacer cette boucle par la structure suivante, autorisant une modification de la liste (et notamment de sa longueur) lors du runtime :
+for(int i = 0; i < actors.size(); i++) {
+	actors.get(i).update(deltaTime);
+}
+Elle n’est pas parfaite, car lorsqu’un des acteurs se supprime de la liste, l’acteur directement suivant dans la liste se retrouve à la position de l’acteur supprimé, et son update() n’a donc pas lieu.
+D’un point de vue pratique, ce phénomène est cependant tout à fait invisible, étant donné la très courte période que représente un deltaTime.
+
+–––––––––––––––––––––––––––––
+BikeGame:
+Hérite de ActorGame
+
+Plusieurs attributs bien pratiques ont été ajoutés à la classe BikeGame, permettant au jeu de garder en mémoire les différents statuts, à savoir hasWon (est-ce que le cycliste à remporté le niveau ? true quand le cycliste passe la ligne d’arrivée) et hasDied(est-ce que le cycliste est mort ? true quand il rentre en collision avec un obstacle)
+
+Une variable de classe CURRENT_LEVEL garde en mémoire l’index du niveau entrain d’être joué. Ainsi, si le joueur remporte la partie, pour passer au nextLevel() il suffit d’incrémenter cette valeur de 1 et d’appeler a nouveau loadLevel() (en plus de la remise à 0 de différentes valeurs).
+
+LAST_LEVEL permet au BikeGame de savoir quand le joueur à réussi le dernier niveau
+
+Enfin, deux attributs permettent de gérer le timing du passage au niveau suivant : elapsedTimeSinceFinish et WAIT_FOR
+
+BikeGame implémente l’interface GameWithLevels, conformément aux instructions figurant dans l’énoncé (si ce n’est pour la méthode loadLevel(), cf. paragraphe Level)
+
+Différents setters et getters ont également été ajoutés.
+
+–––––––––––––––––––––––––––––
+Bike:
+Les quelques modifications apportées à Bike l’ont été dans le but de permettre l’animation du pédalage, et de lui faire lever les bras lorsqu’il passe la ligne d’arrivé. Notamment l’ajout d’un attribut motorWheel bien pratique.
+
+On note également qu’un index BIKE_COLLISION_GROUP lui a été ajouté, pour permettre au Trigger de ne réagir que lors d’une collision avec le Bike
+
+Il est également possible de “booster” le cycliste en appuyant sur la touche SHIFT
+
+Enfin, la direction du cycliste à été gérée à l’aide d’un type énuméré Direction pouvant prendre pour valeur RIGHT ou LEFT, puisque cela me semblait plus approprié/naturel qu’un booléen.
+
+–––––––––––––––––––––––––––––
+Wheel:
+Un getter getMotorWheelAngularPosition() a été ajouté, pour pouvoir animer le pédalage.
+
+–––––––––––––––––––––––––––––
+Miscellaneous :
+Il n’a pas été nécessaire d’ajouter getPayload() et setPayload(), comme présentée dans la remarque partie 5.3
+
+La suggestion de la partie 5.4 concernant les Controllers n’a pas été implémentée. 
+
+Idem pour les “timer”s suggérés dans la partie 6. (Extensions)
+
+Les images ajoutées qui ont peu être utilisées dans le programme (pour les wheels notamment) ont été réalisée par moi-même.
+–––––––––––––––––––––––––––––
+–––––––––––––––––––––––––––––
+EXTENSIONS :
+
+Level:
+Une classe parente abstraite Level définit le comportement général d’un Level à savoir principalement comment il affiche un message une fois chargé.
+
+Elle impose également à chaque sous-classe instanciable de définir la méthode createAllActors(…);
+
+Enfin, elle redéfinit la méthode destroy(), permettant aux Levels d’être facilement supprimés de la liste d’acteurs.
+
+Tous les Levels ont un attribut game, leur permettant de simplement créer les différents acteurs dont ils ont besoin en les ajoutant à game. Le getter getOwner() de la classe parente Level leur permet d’accéder à cet attribut.
+
+Chaque niveau a proprement parler est donc très simple : il est constitué d’un constructeur appelant le constructeur de la classe parente, et redéfinit la méthode createAllActors(…) de manière adéquate.
+
+L’utilisation des Levels se fait ensuite conformément aux instructions figurant dans l’énoncé.
+
+Une méthode loadLevel(…) à été ajoutée à l’interface GameWithLevels, permettant de mieux modulariser le code.
+
+–––––––––––––––––––––––––––––
+Trigger: (classe parente de Finish et Checkpoint)
+Dérive de GameEntity.
+
+Définit dans les grandes lignes le comportement de GameEntity pouvant être traversée par le Bike et dans ce cas disparaître, pour un laps de temps donné.
+
+Puisque tous les Trigger doivent réagir au contact en disparaissant, elle a comme attribut un ContactListener jouant ce rôle.
+
+Sa méthode update(…) se charge de rendre à nouveau visible le Trigger une fois le laps de temps écoulé.
+
+Sa méthode draw() n’affiche le Trigger que s’il est visible.
+
+Puisque les différents Triggers peuvent avoir des formes différentes, sa méthode 
+createParts(…) permet d’associer au Trigger une représentation physique cohérente, telle que définie par chaque sous-classe
+
+Finish et Checkpoint sont constituées d’un constructeur faisant donc appel à cette méthode createParts(…) en fournissant le Shape voulu, et redéfinissent simplement draw(…) et update(…) en fonction de la représentation graphique et de la fonction recherchée.
+
+–––––––––––––––––––––––––––––
+Terrain glissant:
+L’extension terrain glissant à été codée en ajoutant à la classe Terrain un constructeur prenant en paramètre un coefficient de friction et une couleur, en plus de son constructeur classique. Créer une portion de terrain glissante se fait donc de la même manière que pour un terrain classique, en spécifiant simplement un coefficient de frottement plus petit que 1.f et un couleur. Il a été choisi de créer des terrains totalement glissants(coeff. de friction : 0.f) distinguables par leur couleur bleue.
+
+–––––––––––––––––––––––––––––
+Seesaw:
+L’extension bascule à été implémentée de manière très semblable à ce qui a été fait dans le tutoriel de l’énoncé, en l’adaptant à la structure de GameEntity.
+D’un point de vue pratique, on note que la position donne la position du point de pivot et non de l’extrémité de la planche.
+
+Une piste, qui n’as pas été explorée ici, aurait été à la manière de ce qui à été fait pour le terrain glissant, de permettre de rendre les bascules plus ou moins glissantes en jouant sur le paramètre de friction.
+–––––––––––––––––––––––––––––

@@ -2,12 +2,14 @@
 
 Controls :
 
-`ARROW_UP`: Accelerate
-`ARROW_DOWN` : Brake
-`ARROW_RIGHT` / `ARROW_LEFT` : Lean forward / backward
+* `ARROW_UP`: Accelerate
 
-`SPACEBAR` : Turn around
+* `ARROW_DOWN` : Brake
+  
+* `ARROW_RIGHT` / `ARROW_LEFT` : Lean forward / backward
 
-`SHIFT` : Boost
+* `SPACEBAR` : Turn around
 
-`R` key : Retry
+* `SHIFT` : Boost
+
+* `R` key : Retry

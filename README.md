@@ -1,5 +1,7 @@
 # BikeGame : A simple 2D game in Java
 
+Download the `BikeGame.jar` runnable to play !
+
 Controls :
 
 * `ARROW_UP`: Accelerate
